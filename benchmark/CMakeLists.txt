@@ -12,8 +12,9 @@ endmacro()
 
 ############################################################
 
-set(DEPS ../deps)
-set(BEAST ${DEPS}/beast/extras)
+set(DEPS ${CMAKE_SOURCE_DIR}/../deps)
+set(ROCKSDB ${DEPS}/rocksdb)
+set(ROCKSDB_LIB ${ROCKSDB}/librocksdb.a)
 
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
@@ -34,9 +35,19 @@ include_directories(
   ../include
   .
   ${DEPS}
+  ${DEPS}/rocksdb
+  ${DEPS}/rocksdb/include
   )
+
+add_custom_target(librocksdb.a
+  COMMAND make static_lib -j6
+  WORKING_DIRECTORY ${ROCKSDB})
 
 add_executable(benchmark ${DEPS}/xxHash/xxhash.c benchmark.cpp)
 
 target_link_libraries(benchmark
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+  ${ROCKSDB_LIB}
+  )
+
+add_dependencies(benchmark librocksdb.a)

@@ -7,6 +7,13 @@
 
 path-constant DEPS : ../deps ;
 path-constant XXHASH : $(DEPS)/xxHash/xxhash.c ;
+path-constant ROCKSDB_LIB : $(DEPS)/rocksdb/librocksdb.a ;
+
+make $(ROCKSDB_LIB) : : @make_rocks ;
+actions make_rocks
+{
+    cd ../deps/rocksdb && make static_lib -j6
+}
 
 exe benchmark :
     $(XXHASH)
@@ -15,4 +22,7 @@ exe benchmark :
     :
     <library>/boost/thread//boost_thread
     <include>$(DEPS)
+    <include>$(DEPS)/rocksdb
+    <include>$(DEPS)/rocksdb/include
+    <include>$(DEPS)/rocksdb/third-party/gtest-1.7.0/fused-src
     ;
