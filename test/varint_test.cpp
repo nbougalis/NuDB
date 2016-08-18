@@ -56,16 +56,3 @@ public:
 
 } // test
 } // nudb
-
-int main()
-{
-    std::cout << "varint_test:" << std::endl;
-    nudb::test::varint_test t;
-    beast::unit_test::suite_info si(
-        "varint test", "nudb", "nudb", false,
-        [&t](beast::unit_test::runner& r) {
-            t(r);
-        });
-    beast::unit_test::runner runner;
-    return !runner.run(si) ? EXIT_SUCCESS : EXIT_FAILURE;
-}

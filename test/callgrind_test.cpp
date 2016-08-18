@@ -85,18 +85,7 @@ public:
     }
 };
 
+BEAST_DEFINE_TESTSUITE(callgrind, test, nudb);
+
 } // test
 } // nudb
-
-int main()
-{
-    std::cout << "callgrind_test:" << std::endl;
-    nudb::test::callgrind_test t;
-    beast::unit_test::suite_info si(
-        "callgrind test", "nudb", "nudb", false,
-        [&t](beast::unit_test::runner& r) {
-            t(r);
-        });
-    beast::unit_test::runner runner;
-    return !runner.run(si) ? EXIT_SUCCESS : EXIT_FAILURE;
-}

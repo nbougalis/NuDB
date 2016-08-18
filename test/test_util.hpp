@@ -11,10 +11,10 @@
 #include "fail_file.hpp"
 #include "temp_dir.hpp"
 #include "xor_shift_engine.hpp"
-#include "xxhasher.hpp"
 
 #include <nudb/nudb.hpp>
 #include <nudb/identity.hpp>
+#include <nudb/xxhasher.hpp>
 #include <cstdint>
 #include <iomanip>
 #include <memory>

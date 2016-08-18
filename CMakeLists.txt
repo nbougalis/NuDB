@@ -64,7 +64,10 @@ function(GroupSources curdir folder)
     DoGroupSources(${curdir} ${curdir} ${folder})
 endfunction()
 
-include_directories (include)
+include_directories(
+    include
+    deps/beast/extras
+    )
 
 file(GLOB_RECURSE NUDB_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/nudb/*.hpp
@@ -72,3 +75,4 @@ file(GLOB_RECURSE NUDB_INCLUDES
 )
 
 add_subdirectory (tools)
+add_subdirectory (test)

@@ -158,18 +158,7 @@ public:
     }
 };
 
+BEAST_DEFINE_TESTSUITE(recover, test, nudb);
+
 } // test
 } // nudb
-
-int main()
-{
-    std::cout << "recover_test:" << std::endl;
-    nudb::test::recover_test t;
-    beast::unit_test::suite_info si(
-        "recover test", "nudb", "nudb", false,
-        [&t](beast::unit_test::runner& r) {
-            t(r);
-        });
-    beast::unit_test::runner runner;
-    return !runner.run(si) ? EXIT_SUCCESS : EXIT_FAILURE;
-}
