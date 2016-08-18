@@ -171,6 +171,19 @@ public:
 
 private:
     static
+    void
+    err(int ev, error_code& ec)
+    {
+        ec = error_code{ev, system_category()};
+    }
+
+    void
+    last_err(error_code& ec)
+    {
+        err(errno, ec);
+    }
+
+    static
     std::pair<int, int>
     flags(file_mode mode);
 };

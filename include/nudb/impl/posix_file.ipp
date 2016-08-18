@@ -117,10 +117,10 @@ open(file_mode mode, path_type const& path, error_code& ec)
     auto const result = flags(mode);
     fd_ = ::open(path.c_str(), result.first);
     if(fd_ == -1)
-        return last_error();
+        return last_err(ec);
 #ifndef __APPLE__
     if(::posix_fadvise(fd_, 0, 0, result.second) != 0)
-        return last_error();
+        return last_err(ec);
 #endif
 }
 
@@ -155,12 +155,12 @@ actual_size() const
 template<class _>
 std::size_t
 posix_file<_>::
-actual_size(error_code& ec) const
+size(error_code& ec) const
 {
     struct stat st;
     if(::fstat(fd_, &st) != 0)
     {
-        last_error(ec);
+        last_err(ec);
         return 0;
     }
     return st.st_size;
@@ -174,17 +174,34 @@ read(std::size_t offset, void* buffer, std::size_t bytes)
     while(bytes > 0)
     {
         auto const n = ::pread(
-            fd_, buffer, bytes, offset);
-        // VFALCO end of file should throw short_read
+            fd_, buffer, std::min(bytes, SSIZE_MAX), offset);
         if(n == -1)
-            throw file_posix_error(
-                "pread");
+            throw file_posix_error("pread");
         if(n == 0)
             throw file_short_read_error();
         offset += n;
         bytes -= n;
         buffer = reinterpret_cast<
             char*>(buffer) + n;
+    }
+}
+
+template<class _>
+void
+posix_file<_>::
+read(std::size_t offset, void* buffer, std::size_t bytes, error_code& ec)
+{
+    while(bytes > 0)
+    {
+        auto const n = ::pread(
+            fd_, buffer, std::min(bytes, SSIZE_MAX), offset);
+        if(n == -1)
+            return last_err(ec);
+        if(n == 0)
+            return err(error::short_read, ec);
+        offset += n;
+        bytes -= n;
+        buffer = reinterpret_cast<char*>(buffer) + n;
     }
 }
 

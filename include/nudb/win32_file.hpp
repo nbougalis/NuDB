@@ -105,12 +105,12 @@ file_win32_error::text(DWORD dwError)
     return s;
 }
 
+} // detail
+
 //------------------------------------------------------------------------------
 
-template<class = void>
 class win32_file
 {
-private:
     HANDLE hf_ = INVALID_HANDLE_VALUE;
 
 public:
@@ -118,19 +118,33 @@ public:
     win32_file(win32_file const&) = delete;
     win32_file& operator=(win32_file const&) = delete;
 
+    /** Destructor.
+
+        If open, the file is closed.
+    */
     ~win32_file();
 
+    /** Move constructor.
+
+        @note The state of the moved-from object is as if default constructed.
+    */
     win32_file(win32_file&&);
 
+    /** Move assignment.
+
+        @note The state of the moved-from object is as if default constructed.
+    */
     win32_file&
     operator=(win32_file&& other);
 
+    /// Returns `true` if the file is open.
     bool
     is_open() const
     {
         return hf_ != INVALID_HANDLE_VALUE;
     }
 
+    /// Close the file if it is open.
     void
     close();
 
@@ -140,6 +154,22 @@ public:
     //
     bool
     create(file_mode mode, path_type const& path);
+
+    /** Create a new file.
+
+        After the file is created, it is opened as if by open(mode, path, ec).
+
+        Preconditions:
+            The file must not already exist, or errc::file_exists is returned.
+
+        @param mode The open mode.
+
+        @param path The path of the file to create.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    create(file_mode mode, path_type const& path, error_code& ec);
 
     //  Returns:
     //      `false` if the file doesnt exist
@@ -172,6 +202,19 @@ public:
     static
     bool
     erase(path_type const& path);
+
+    /** Remove a file from the file system.
+
+        Preconditions:
+            The file must exist.
+
+        @param path The path of the file to remove.
+
+        @param ec Set to the error, if any occurred.
+    */
+    static
+    void
+    erase(path_type const& path, error_code& ec);
 
     //  Returns:
     //      Current file size in bytes measured by operating system
@@ -211,17 +254,58 @@ public:
         @param ec Set to the error, if any occurred.
     */
     void
-    read(std::size_t offset, void* buffer, std::size_t bytes, error_code& ec);
+    read(std::size_t offset,
+        void* buffer, std::size_t bytes, error_code& ec);
 
     void
     write(std::size_t offset,
         void const* buffer, std::size_t bytes);
 
+    /** Write data to a location in the file.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param offset The position in the file to write from,
+        expressed as a byte offset from the beginning.
+
+        @param buffer The data the write.
+
+        @param bytes The number of bytes to write.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    write(std::size_t offset,
+        void const* buffer, std::size_t bytes, error_code& ec);
+
     void
     sync();
 
+    /** Perform a low level file synchronization.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    sync(error_code& ec);
+
     void
     trunc(std::size_t length);
+
+    /** Truncate the file at a specific size.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param length The new file size.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    trunc(std::size_t length, error_code& ec);
 
 private:
     static
@@ -242,10 +326,6 @@ private:
     std::pair<DWORD, DWORD>
     flags(file_mode mode);
 };
-
-} // detail
-
-using win32_file = detail::win32_file<>;
 
 } // nudb
 

@@ -24,7 +24,10 @@ enum class error
     success = 0,
 
     /// A file read returned less data than expected
-    short_read = 1,
+    short_read,
+
+    /// A file write stored less data than expected
+    short_write
 };
 
 /// The error category used for database error codes.
@@ -43,6 +46,9 @@ struct error_category : public boost::system::error_category
         {
         case error::short_read:
             return "short read";
+
+        case error::short_write:
+            return "short write";
 
         default:
             return "database error";
