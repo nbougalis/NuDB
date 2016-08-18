@@ -567,16 +567,28 @@ private:
     void
     do_info(path_type const& path)
     {
+        error_code ec;
+        auto const err =
+            [&]
+            {
+                std::cout << path << ": " << ec.message() << "\n";
+            };
         native_file f;
-        f.open(file_mode::read, path);
-        auto const size = f.actual_size();
+        f.open(file_mode::read, path, ec);
+        if(ec)
+            return err();
+        auto const size = f.size(ec);
+        if(ec)
+            return err();
         if(size < 8)
         {
             std::cout << "File " << path << " is too small to be a database file.\n";
             return;
         }
         std::array<char, 8> ta;
-        f.read(0, ta.data(), ta.size());
+        f.read(0, ta.data(), ta.size(), ec);
+        if(ec)
+            return err();
         std::string ts{ta.data(), ta.size()};
 
         if(ts == "nudb.dat")
