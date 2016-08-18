@@ -1,7 +1,7 @@
 //
-// Copyright (c) 2015-2016 Vinnie Falco (vinnie dot falco at gmail dot com)
+// Copyright(c) 2015-2016 Vinnie Falco(vinnie dot falco at gmail dot com)
 //
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// Distributed under the Boost Software License, Version 1.0.(See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
@@ -9,6 +9,7 @@
 #define NUDB_DETAIL_WIN32_FILE_HPP
 
 #include <nudb/common.hpp>
+#include <nudb/error.hpp>
 #include <cassert>
 #include <climits>
 #include <string>
@@ -43,10 +44,9 @@
 #pragma pop_macro("NOMINMAX")
 #endif
 
-namespace nudb {
-
 #if NUDB_WIN32_FILE
 
+namespace nudb {
 namespace detail {
 
 // Win32 error code
@@ -55,48 +55,48 @@ class file_win32_error
 {
 public:
     explicit
-    file_win32_error (char const* m,
+    file_win32_error(char const* m,
             DWORD dwError = ::GetLastError())
-        : file_error (std::string("nudb: ") + m +
+        : file_error(std::string("nudb: ") + m +
             ", " + text(dwError))
     {
     }
 
     explicit
-    file_win32_error (std::string const& m,
+    file_win32_error(std::string const& m,
             DWORD dwError = ::GetLastError())
-        : file_error (std::string("nudb: ") + m +
+        : file_error(std::string("nudb: ") + m +
             ", " + text(dwError))
     {
     }
 
 private:
-    template <class = void>
+    template<class = void>
     static
     std::string
-    text (DWORD dwError);
+    text(DWORD dwError);
 };
 
-template <class>
+template<class>
 std::string
-file_win32_error::text (DWORD dwError)
+file_win32_error::text(DWORD dwError)
 {
     LPSTR buf = nullptr;
-    size_t const size = FormatMessageA (
+    size_t const size = FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         dwError,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPSTR)&buf,
+       (LPSTR)&buf,
         0,
         NULL);
     std::string s;
-    if (size)
+    if(size)
     {
         s.append(buf, size);
-        LocalFree (buf);
+        LocalFree(buf);
     }
     else
     {
@@ -107,7 +107,7 @@ file_win32_error::text (DWORD dwError)
 
 //------------------------------------------------------------------------------
 
-template <class = void>
+template<class = void>
 class win32_file
 {
 private:
@@ -115,15 +115,15 @@ private:
 
 public:
     win32_file() = default;
-    win32_file (win32_file const&) = delete;
-    win32_file& operator= (win32_file const&) = delete;
+    win32_file(win32_file const&) = delete;
+    win32_file& operator=(win32_file const&) = delete;
 
     ~win32_file();
 
-    win32_file (win32_file&&);
+    win32_file(win32_file&&);
 
     win32_file&
-    operator= (win32_file&& other);
+    operator=(win32_file&& other);
 
     bool
     is_open() const
@@ -139,14 +139,25 @@ public:
     //      `true` on success, else throws
     //
     bool
-    create (file_mode mode, std::string const& path);
+    create(file_mode mode, path_type const& path);
 
     //  Returns:
     //      `false` if the file doesnt exist
     //      `true` on success, else throws
     //
     bool
-    open (file_mode mode, std::string const& path);
+    open(file_mode mode, path_type const& path);
+
+    /** Open a file.
+
+        @param mode The open mode.
+
+        @param path The path of the file to open.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    open(file_mode mode, path_type const& path, error_code& ec);
 
     //  Effects:
     //      Removes the file from the file system.
@@ -160,7 +171,7 @@ public:
     //
     static
     bool
-    erase (path_type const& path);
+    erase(path_type const& path);
 
     //  Returns:
     //      Current file size in bytes measured by operating system
@@ -170,290 +181,76 @@ public:
     std::size_t
     actual_size() const;
 
-    void
-    read (std::size_t offset,
-        void* buffer, std::size_t bytes);
+    /** Return the size of the file.
+
+        Preconditions:
+            The file must be open.
+
+        @param ec Set to the error, if any occurred.
+
+        @return The size of the file, in bytes.
+    */
+    std::uint64_t
+    size(error_code& ec) const;
 
     void
-    write (std::size_t offset,
+    read(std::size_t offset, void* buffer, std::size_t bytes);
+
+    /** Read data from a location in the file.
+
+        Preconditions:
+            The file must be open.
+
+        @param offset The position in the file to read from,
+        expressed as a byte offset from the beginning.
+
+        @param buffer The location to store the data.
+
+        @param bytes The number of bytes to read.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    read(std::size_t offset, void* buffer, std::size_t bytes, error_code& ec);
+
+    void
+    write(std::size_t offset,
         void const* buffer, std::size_t bytes);
 
     void
     sync();
 
     void
-    trunc (std::size_t length);
+    trunc(std::size_t length);
 
 private:
     static
+    void
+    err(DWORD dwError, error_code& ec)
+    {
+        ec = error_code{static_cast<int>(dwError), system_category()};
+    }
+
+    static
+    void
+    last_err(error_code& ec)
+    {
+        err(::GetLastError(), ec);
+    }
+
+    static
     std::pair<DWORD, DWORD>
-    flags (file_mode mode);
+    flags(file_mode mode);
 };
-
-template <class _>
-win32_file<_>::~win32_file()
-{
-    close();
-}
-
-template <class _>
-win32_file<_>::win32_file (win32_file&& other)
-    : hf_ (other.hf_)
-{
-    other.hf_ = INVALID_HANDLE_VALUE;
-}
-
-template <class _>
-win32_file<_>&
-win32_file<_>::operator= (win32_file&& other)
-{
-    if (&other == this)
-        return *this;
-    close();
-    hf_ = other.hf_;
-    other.hf_ = INVALID_HANDLE_VALUE;
-    return *this;
-}
-
-template <class _>
-void
-win32_file<_>::close()
-{
-    if (hf_ != INVALID_HANDLE_VALUE)
-    {
-        ::CloseHandle(hf_);
-        hf_ = INVALID_HANDLE_VALUE;
-    }
-}
-
-template <class _>
-bool
-win32_file<_>::create (file_mode mode,
-    std::string const& path)
-{
-    assert(! is_open());
-    auto const f = flags(mode);
-    hf_ = ::CreateFileA (path.c_str(),
-        f.first,
-        0,
-        NULL,
-        CREATE_NEW,
-        f.second,
-        NULL);
-    if (hf_ == INVALID_HANDLE_VALUE)
-    {
-        DWORD const dwError = ::GetLastError();
-        if (dwError != ERROR_FILE_EXISTS)
-            throw file_win32_error(
-                "create file", dwError);
-        return false;
-    }
-    return true;
-}
-
-template <class _>
-bool
-win32_file<_>::open (file_mode mode,
-    std::string const& path)
-{
-    assert(! is_open());
-    auto const f = flags(mode);
-    hf_ = ::CreateFileA (path.c_str(),
-        f.first,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        f.second,
-        NULL);
-    if (hf_ == INVALID_HANDLE_VALUE)
-    {
-        DWORD const dwError = ::GetLastError();
-        if (dwError != ERROR_FILE_NOT_FOUND &&
-            dwError != ERROR_PATH_NOT_FOUND)
-            throw file_win32_error(
-                "open file", dwError);
-        return false;
-    }
-    return true;
-}
-
-template <class _>
-bool
-win32_file<_>::erase (path_type const& path)
-{
-    BOOL const bSuccess =
-        ::DeleteFileA(path.c_str());
-    if (! bSuccess)
-    {
-        DWORD dwError = ::GetLastError();
-        if (dwError != ERROR_FILE_NOT_FOUND &&
-            dwError != ERROR_PATH_NOT_FOUND)
-            throw file_win32_error(
-                "erase file");
-        return false;
-    }
-    return true;
-}
-
-// Return: Current file size in bytes measured by operating system
-template <class _>
-std::size_t
-win32_file<_>::actual_size() const
-{
-    assert(is_open());
-    LARGE_INTEGER fileSize;
-    if (! ::GetFileSizeEx(hf_, &fileSize))
-        throw file_win32_error(
-            "size file");
-    return static_cast<std::size_t>(fileSize.QuadPart);
-}
-
-template <class _>
-void
-win32_file<_>::read (std::size_t offset,
-    void* buffer, std::size_t bytes)
-{
-    while(bytes > 0)
-    {
-        DWORD bytesRead;
-        LARGE_INTEGER li;
-        li.QuadPart = static_cast<LONGLONG>(offset);
-        OVERLAPPED ov;
-        ov.Offset = li.LowPart;
-        ov.OffsetHigh = li.HighPart;
-        ov.hEvent = NULL;
-        DWORD amount;
-        if(bytes > std::numeric_limits<DWORD>::max())
-            amount = std::numeric_limits<DWORD>::max();
-        else
-            amount = static_cast<DWORD>(bytes);
-        BOOL const bSuccess = ::ReadFile(
-            hf_, buffer, amount, &bytesRead, &ov);
-        if (! bSuccess)
-        {
-            DWORD const dwError = ::GetLastError();
-            if (dwError != ERROR_HANDLE_EOF)
-                throw file_win32_error(
-                    "read file", dwError);
-            throw file_short_read_error();
-        }
-        if (bytesRead == 0)
-            throw file_short_read_error();
-        offset += bytesRead;
-        bytes -= bytesRead;
-        buffer = reinterpret_cast<char*>(
-            buffer) + bytesRead;
-    }
-}
-
-template <class _>
-void
-win32_file<_>::write (std::size_t offset,
-    void const* buffer, std::size_t bytes)
-{
-    while(bytes > 0)
-    {
-        LARGE_INTEGER li;
-        li.QuadPart = static_cast<LONGLONG>(offset);
-        OVERLAPPED ov;
-        ov.Offset = li.LowPart;
-        ov.OffsetHigh = li.HighPart;
-        ov.hEvent = NULL;
-        DWORD amount;
-        if(bytes > std::numeric_limits<DWORD>::max())
-            amount = std::numeric_limits<DWORD>::max();
-        else
-            amount = static_cast<DWORD>(bytes);
-        DWORD bytesWritten;
-        BOOL const bSuccess = ::WriteFile(
-            hf_, buffer, amount, &bytesWritten, &ov);
-        if (! bSuccess)
-            throw file_win32_error(
-                "write file");
-        if (bytesWritten == 0)
-            throw file_short_write_error();
-        offset += bytesWritten;
-        bytes -= bytesWritten;
-        buffer = reinterpret_cast<
-            char const*>(buffer) +
-                bytesWritten;
-    }
-}
-
-template <class _>
-void
-win32_file<_>::sync()
-{
-    BOOL const bSuccess =
-        ::FlushFileBuffers(hf_);
-    if (! bSuccess)
-        throw file_win32_error(
-            "sync file");
-}
-
-template <class _>
-void
-win32_file<_>::trunc (std::size_t length)
-{
-    LARGE_INTEGER li;
-    li.QuadPart = length;
-    BOOL bSuccess;
-    bSuccess = ::SetFilePointerEx(
-        hf_, li, NULL, FILE_BEGIN);
-    if (bSuccess)
-        bSuccess = SetEndOfFile(hf_);
-    if (! bSuccess)
-        throw file_win32_error(
-            "trunc file");
-}
-
-template <class _>
-std::pair<DWORD, DWORD>
-win32_file<_>::flags (file_mode mode)
-{
-    std::pair<DWORD, DWORD> result(0, 0);
-    switch (mode)
-    {
-    case file_mode::scan:
-        result.first =
-            GENERIC_READ;
-        result.second =
-            FILE_FLAG_SEQUENTIAL_SCAN;
-        break;
-
-    case file_mode::read:
-        result.first =
-            GENERIC_READ;
-        result.second =
-            FILE_FLAG_RANDOM_ACCESS;
-        break;
-
-    case file_mode::append:
-        result.first =
-            GENERIC_READ | GENERIC_WRITE;
-        result.second =
-            FILE_FLAG_RANDOM_ACCESS
-            //| FILE_FLAG_NO_BUFFERING
-            //| FILE_FLAG_WRITE_THROUGH
-            ;
-        break;
-
-    case file_mode::write:
-        result.first =
-            GENERIC_READ | GENERIC_WRITE;
-        result.second =
-            FILE_FLAG_RANDOM_ACCESS;
-        break;
-    }
-    return result;
-}
 
 } // detail
 
 using win32_file = detail::win32_file<>;
 
-#endif
-
 } // nudb
+
+#include <nudb/impl/win32_file.ipp>
+
+#endif
 
 #endif
