@@ -372,7 +372,7 @@ verify_fast (
         {
             bucket b(kh.block_size, buf.get() +
                 (i - b0) * kh.block_size);
-            nkeys[i] = b.size();
+            nkeys[i] = static_cast<std::uint32_t>(b.size());
             std::size_t nspill = 0;
             auto spill = b.spill();
             while (spill != 0)
