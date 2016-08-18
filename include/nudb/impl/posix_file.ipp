@@ -11,24 +11,24 @@
 namespace nudb {
 namespace detail {
 
-template<class _>
-posix_file<_>::
+inline
+posix_file::
 ~posix_file()
 {
     close();
 }
 
-template<class _>
-posix_file<_>::
+inline
+posix_file::
 posix_file(posix_file &&other)
     : fd_(other.fd_)
 {
     other.fd_ = -1;
 }
 
-template<class _>
-posix_file<_>&
-posix_file<_>::
+inline
+posix_file&
+posix_file::
 operator=(posix_file&& other)
 {
     if(&other == this)
@@ -39,9 +39,9 @@ operator=(posix_file&& other)
     return *this;
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
 close()
 {
     if(fd_ != -1)
@@ -53,9 +53,9 @@ close()
     }
 }
 
-template<class _>
+inline
 bool
-posix_file<_>::
+posix_file::
 create(file_mode mode, path_type const& path)
 {
     auto const result = flags(mode);
@@ -84,9 +84,36 @@ create(file_mode mode, path_type const& path)
     return true;
 }
 
-template<class _>
+inline
+void
+posix_file::
+create(file_mode mode, path_type const& path, error_code& ec)
+{
+    auto const result = flags(mode);
+    assert(! is_open());
+    fd_ = ::open(path.c_str(), result.first);
+    if(fd_ != -1)
+    {
+        ::close(fd_);
+        fd_ = -1;
+        ec = error_code{errc::file_exists, generic_category());
+        return ;
+    }
+    int errnum = errno;
+    if(errnum != ENOENT)
+        return err(errnum);
+    fd_ = ::open(path.c_str(), result.first | O_CREAT, 0644);
+    if(fd_ == -1)
+        return last_err(ec);
+#ifndef __APPLE__
+    if(::posix_fadvise(fd_, 0, 0, result.second) != 0)
+        return err(ec);
+#endif
+}
+
+inline
 bool
-posix_file<_>::
+posix_file::
 open(file_mode mode, path_type const& path)
 {
     assert(! is_open());
@@ -94,8 +121,8 @@ open(file_mode mode, path_type const& path)
     fd_ = ::open(path.c_str(), result.first);
     if(fd_ == -1)
     {
-        int errnum = errno;
-        if(errnum == ENOENT)
+        int ev = errno;
+        if(ev == ENOENT)
             return false;
         throw file_posix_error(
             "open file", errnum);
@@ -108,9 +135,9 @@ open(file_mode mode, path_type const& path)
     return true;
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
 open(file_mode mode, path_type const& path, error_code& ec)
 {
     assert(! is_open());
@@ -124,9 +151,9 @@ open(file_mode mode, path_type const& path, error_code& ec)
 #endif
 }
 
-template<class _>
+inline
 bool
-posix_file<_>::
+posix_file::
 erase(path_type const& path)
 {
     if(::unlink(path.c_str()) != 0)
@@ -140,9 +167,22 @@ erase(path_type const& path)
     return true;
 }
 
-template<class _>
+inline
+void
+posix_file::
+erase(path_type const& path, error_code& ec)
+{
+    if(::unlink(path.c_str()) != 0)
+    {
+        int const ev = errno;
+        if(ev != ENOENT)
+            return err(ev);
+    }
+}
+
+inline
 std::size_t
-posix_file<_>::
+posix_file::
 actual_size() const
 {
     struct stat st;
@@ -152,9 +192,9 @@ actual_size() const
     return st.st_size;
 }
 
-template<class _>
+inline
 std::size_t
-posix_file<_>::
+posix_file::
 size(error_code& ec) const
 {
     struct stat st;
@@ -166,9 +206,9 @@ size(error_code& ec) const
     return st.st_size;
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
 read(std::size_t offset, void* buffer, std::size_t bytes)
 {
     while(bytes > 0)
@@ -186,9 +226,9 @@ read(std::size_t offset, void* buffer, std::size_t bytes)
     }
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
 read(std::size_t offset, void* buffer, std::size_t bytes, error_code& ec)
 {
     while(bytes > 0)
@@ -205,9 +245,9 @@ read(std::size_t offset, void* buffer, std::size_t bytes, error_code& ec)
     }
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
 write(std::size_t offset, void const* buffer, std::size_t bytes)
 {
     while(bytes > 0)
@@ -226,27 +266,65 @@ write(std::size_t offset, void const* buffer, std::size_t bytes)
     }
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
+write(std::size_t offset,
+    void const* buffer, std::size_t bytes, error_code& ec)
+{
+    while(bytes > 0)
+    {
+        auto const n = ::pwrite(fd_, buffer, bytes, offset);
+        if(n == -1)
+            return last_err();
+        if(n == 0)
+            return err(error::short_read, ec);
+        offset += n;
+        bytes -= n;
+        buffer = reinterpret_cast<
+            char const*>(buffer) + n;
+    }
+}
+
+inline
+void
+posix_file::
 sync()
 {
     if(::fsync(fd_) != 0)
         throw file_posix_error("fsync");
 }
 
-template<class _>
+inline
 void
-posix_file<_>::
+posix_file::
+sync(error_code& ec)
+{
+    if(::fsync(fd_) != 0)
+        return last_err(ec);
+}
+
+inline
+void
+posix_file::
 trunc(std::size_t length)
 {
     if(::ftruncate(fd_, length) != 0)
         throw file_posix_error("ftruncate");
 }
 
-template<class _>
+inline
+void
+posix_file::
+trunc(std::size_t length, error_code& ec)
+{
+    if(::ftruncate(fd_, length) != 0)
+        return last_err(ec);
+}
+
+inline
 std::pair<int, int>
-posix_file<_>::
+posix_file::
 flags(file_mode mode)
 {
     std::pair<int, int> result;

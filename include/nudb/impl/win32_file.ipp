@@ -164,7 +164,12 @@ erase(path_type const& path, error_code& ec)
     BOOL const bSuccess =
         ::DeleteFileA(path.c_str());
     if(! bSuccess)
-        return last_err(ec);
+    {
+        auto dwError = ::GetLastError();
+        if(dwError != ERROR_FILE_NOT_FOUND &&
+                dwError != ERROR_PATH_NOT_FOUND)
+            return err(dwError, ec);
+    }
 }
 
 inline

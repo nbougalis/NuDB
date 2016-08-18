@@ -205,8 +205,7 @@ public:
 
     /** Remove a file from the file system.
 
-        Preconditions:
-            The file must exist.
+        No error is raised if the file does not exist.
 
         @param path The path of the file to remove.
 

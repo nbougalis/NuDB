@@ -16,6 +16,7 @@ namespace nudb {
 namespace errc = boost::system::errc;
 using error_code = boost::system::error_code;
 using boost::system::system_category;
+using boost::system::generic_category;
 
 /// Database error codes.
 enum class error

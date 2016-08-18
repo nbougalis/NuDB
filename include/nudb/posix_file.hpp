@@ -73,12 +73,12 @@ private:
     }
 };
 
+} // detail
+
 //------------------------------------------------------------------------------
 
-template <class = void>
 class posix_file
 {
-private:
     int fd_ = -1;
 
 public:
@@ -86,24 +86,54 @@ public:
     posix_file(posix_file const&) = delete;
     posix_file& operator=(posix_file const&) = delete;
 
+    /** Destructor.
+
+        If open, the file is closed.
+    */
     ~posix_file();
 
+    /** Move constructor.
+
+        @note The state of the moved-from object is as if default constructed.
+    */
     posix_file(posix_file&&);
 
+    /** Move assignment.
+
+        @note The state of the moved-from object is as if default constructed.
+    */
     posix_file&
     operator=(posix_file&& other);
 
+    /// Returns `true` if the file is open.
     bool
     is_open() const
     {
         return fd_ != -1;
     }
 
+    /// Close the file if it is open.
     void
     close();
 
     bool
     create(file_mode mode, path_type const& path);
+
+    /** Create a new file.
+
+        After the file is created, it is opened as if by open(mode, path, ec).
+
+        Preconditions:
+            The file must not already exist, or errc::file_exists is returned.
+
+        @param mode The open mode.
+
+        @param path The path of the file to create.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    create(file_mode mode, path_type const& path, error_code& ec);
 
     bool
     open(file_mode mode, path_type const& path);
@@ -122,6 +152,18 @@ public:
     static
     bool
     erase(path_type const& path);
+
+    /** Remove a file from the file system.
+
+        No error is raised if the file does not exist.
+
+        @param path The path of the file to remove.
+
+        @param ec Set to the error, if any occurred.
+    */
+    static
+    void
+    erase(path_type const& path, error_code& ec);
 
     std::size_t
     actual_size() const;
@@ -163,11 +205,51 @@ public:
     write(std::size_t offset,
         void const* buffer, std::size_t bytes);
 
+    /** Write data to a location in the file.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param offset The position in the file to write from,
+        expressed as a byte offset from the beginning.
+
+        @param buffer The data the write.
+
+        @param bytes The number of bytes to write.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    write(std::size_t offset,
+        void const* buffer, std::size_t bytes, error_code& ec);
+
     void
     sync();
 
+    /** Perform a low level file synchronization.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    sync(error_code& ec);
+
     void
     trunc(std::size_t length);
+
+    /** Truncate the file at a specific size.
+
+        Preconditions:
+            The file must be open with a write mode.
+
+        @param length The new file size.
+
+        @param ec Set to the error, if any occurred.
+    */
+    void
+    trunc(std::size_t length, error_code& ec);
 
 private:
     static
@@ -187,10 +269,6 @@ private:
     std::pair<int, int>
     flags(file_mode mode);
 };
-
-} // detail
-
-using posix_file = detail::posix_file<>;
 
 } // nudb
 
