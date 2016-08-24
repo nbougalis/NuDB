@@ -1,0 +1,51 @@
+[/
+    Copyright (c) 2013-2016 Vinnie Falco (vinnie dot falco at gmail dot com)
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[library NuDB
+    [quickbook 1.6]
+    [copyright 2015 - 2016 Vinnie Falco]
+    [purpose C++ Library]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Falco, Vinnie]]
+    [category template]
+    [category generic]
+]
+
+[template mdash[] '''&mdash; ''']
+[template indexterm1[term1] '''<indexterm><primary>'''[term1]'''</primary></indexterm>''']
+[template indexterm2[term1 term2] '''<indexterm><primary>'''[term1]'''</primary><secondary>'''[term2]'''</secondary></indexterm>''']
+
+[section Overview]
+
+The new breed of decentralized systems such as Ripple or Bitcoin
+that use embedded key/value databases place different demands on
+these database than what is traditional. NuDB provides highly
+optimized and concurrent atomic, durable, and isolated fetch and
+insert operations to secondary storage, along with these features:
+
+[section Motivation]
+
+Insert-only key/value databases are frequently used in decentralized,
+trustless systems for blockchains such as Ripple or Bitcoin. Traditional
+implementations such as...
+
+[endsect]
+
+[section Description]
+[endsect]
+
+[endsect]
+
+[include reference.qbk]
+
+[section:idx Index]
+[xinclude index.xml]
+[endsect]
