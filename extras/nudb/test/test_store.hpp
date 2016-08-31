@@ -91,8 +91,9 @@ template<class _>
 Buffer_t<_>::
 Buffer_t(Buffer_t const& other)
 {
-    std::memcpy(resize(other.size()),
-        other.data(), other.size());
+    if(!other.empty())
+        std::memcpy(resize(other.size()),
+            other.data(), other.size());
 }
 
 template<class _>
@@ -101,11 +102,14 @@ Buffer_t<_>::
 operator=(Buffer_t&& other) ->
     Buffer_t&
 {
-    size_ = other.size_;
-    capacity_ = other.capacity_;
-    p_ = std::move(other.p_);
-    other.size_ = 0;
-    other.capacity_ = 0;
+    if(&other != this)
+    {
+        size_ = other.size_;
+        capacity_ = other.capacity_;
+        p_ = std::move(other.p_);
+        other.size_ = 0;
+        other.capacity_ = 0;
+    }
     return *this;
 }
 
@@ -115,13 +119,14 @@ Buffer_t<_>::
 operator=(Buffer_t const& other) ->
     Buffer_t&
 {
-    if(&other == this)
-        return;
-    if(other.empty())
-        size_ = 0;
-    else
-        std::memcpy(resize(other.size()),
-            other.data(), other.size());
+    if(&other != this)
+    {
+        if(other.empty())
+            size_ = 0;
+        else
+            std::memcpy(resize(other.size()),
+                other.data(), other.size());
+    }
     return *this;
 }
 
@@ -166,9 +171,9 @@ resize(std::size_t size)
 template<class _>
 std::uint8_t*
 Buffer_t<_>::
-operator()(void const* data, std::size_t size) 
+operator()(void const* data, std::size_t size)
 {
-    if(data == nullptr)
+    if(data == nullptr || size == 0)
         return resize(0);
     return reinterpret_cast<std::uint8_t*>(
         std::memcpy(resize(size), data, size));
@@ -185,7 +190,7 @@ struct item_type
     std::uint8_t* data;
     std::size_t size;
 };
-   
+
 /// Interface to facilitate tests
 template<class File>
 class basic_test_store
